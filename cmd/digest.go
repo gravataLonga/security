@@ -33,6 +33,7 @@ import (
 )
 
 var create bool
+var fileOutput string
 
 type fileDigest struct {
 	file   string
@@ -90,10 +91,11 @@ func init() {
 	// local flags which will only run when this command
 	// is called directly, e.g.:
 	digestCmd.Flags().BoolVarP(&create, "create", "c", false, "If provided, it will create a digest file rather than check")
+	digestCmd.Flags().StringVarP(&fileOutput, "output", "o", "checklist.chk", "You can provider a output file name.")
 }
 
 func createFile() {
-	f, err := os.Create("./checklist.chk")
+	f, err := os.Create(fileOutput)
 	defer f.Close()
 	if err != nil {
 		color.Red("Unable to create a file")
@@ -108,13 +110,13 @@ func createFile() {
 		}
 	}
 
-	color.Green("Ok, writed. Check file ./checklist.chk")
+	color.Green("Ok, writed. Check file ./%s", fileOutput)
 	w.Flush()
 }
 
 func checkFile() bool {
 	var status bool = true
-	file, err := os.Open("./checklist.chk")
+	file, err := os.Open(fileOutput)
 	if err != nil {
 		log.Fatal(err)
 		return false
