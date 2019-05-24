@@ -2,9 +2,9 @@
 env GOOS=linux GOARCH=amd64 go build -o ccsecurity main.go  
 
 # Upload
-sftp \<\user\>@\<\server\>
-> put ccsecurity
-> exit
+sftp \<user\>@\<server\>
+\> put ccsecurity
+\> exit
 
 # Put binary globally
 mv ccsecurity /usr/local/bin
