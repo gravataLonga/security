@@ -10,8 +10,8 @@ sftp \<user\>@\<server\>
 mv ccsecurity /usr/local/bin
 
 # Create a new DIGEST file
-ccsecurity digest -c -o file.chk "./<path>/\*\*/\*.php"
+ccsecurity digest -c -o file.chk "./\<path\>/\*\*/\*.php"
 
 # Check Digest
-ccsecurity digest -o file.chk "./<path>/\*\*/\*.php"
+ccsecurity digest -o file.chk "./\<path\>/\*\*/\*.php"
 
