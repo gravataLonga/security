@@ -122,6 +122,7 @@ func checkFile() bool {
 	digests := getDigestFromFile()
 	for _, item := range list {
 		digest, ok := digests[item.file]
+		log.Printf("File %s exist on file ? %t", item.file, ok)
 		if !ok {
 			status = false
 			color.Red("The file %s don't exist on file .chk", item.file)
@@ -142,7 +143,7 @@ func checkFile() bool {
 }
 
 func getDigestFromFile() digestMap {
-	var digest digestMap
+	var digest = make(digestMap)
 	file, err := os.Open(fileOutput)
 	if err != nil {
 		log.Fatal(err)
@@ -157,7 +158,10 @@ func getDigestFromFile() digestMap {
 		partDigest := strings.Split(text, " ")
 		md5 := partDigest[0]
 		theFile := partDigest[1]
-		digest[theFile] = md5
+		_, ok := digest[theFile]
+		if theFile != "" && !ok {
+			digest[theFile] = md5
+		}
 	}
 	return digest
 }
@@ -182,12 +186,12 @@ func digests(chDone chan bool, matches []string) {
 
 	// Subprocess
 	c1 := worker(matches)
-	c2 := worker(matches)
-	c3 := worker(matches)
-	c4 := worker(matches)
+	// c2 := worker(matches)
+	// c3 := worker(matches)
+	// c4 := worker(matches)
 
 	// Get Results..
-	for v := range merge(c1, c2, c3, c4) {
+	for v := range merge(c1) {
 		list = append(list, v)
 	}
 
