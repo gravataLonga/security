@@ -21,15 +21,16 @@ import (
 	"bufio"
 	"crypto/md5"
 	"fmt"
-	"github.com/fatih/color"
-	"github.com/mattn/go-zglob"
-	"github.com/spf13/cobra"
 	"io"
 	"io/ioutil"
 	"log"
 	"os"
 	"strings"
 	"sync"
+
+	"github.com/fatih/color"
+	"github.com/mattn/go-zglob"
+	"github.com/spf13/cobra"
 )
 
 var create bool
@@ -43,11 +44,13 @@ type fileDigest struct {
 var list []fileDigest
 var listCheck []fileDigest
 
+type digestMap map[string]string
+
 // digestCmd represents the digest command
 var digestCmd = &cobra.Command{
 	Use:   "digest",
 	Short: "It will create or check digest file based on md5sum.",
-	Long: `For creating a md5sum digest file, you must run this command at root of project or can 
+	Long: `For creating a md5sum digest file, you must run this command at root of project or can
 	provide a root folder after the command. To verified is the same logic as create.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		matches, err := zglob.Glob(args[0])
@@ -115,31 +118,48 @@ func createFile() {
 }
 
 func checkFile() bool {
-	var status bool = true
+	status := true
+	digests := getDigestFromFile()
+	for _, item := range list {
+		digest, ok := digests[item.file]
+		if !ok {
+			status = false
+			color.Red("The file %s don't exist on file .chk", item.file)
+			continue
+		}
+		if digest != item.digest {
+			color.Red("The file %s hasn't have same digest. (old: %s, new: %s)", item.file, item.digest, digest)
+			status = false
+		}
+		delete(digests, item.file)
+	}
+
+	if len(digests) > 0 {
+		color.Red("We still have digest items on file. %s", digests)
+	}
+
+	return status
+}
+
+func getDigestFromFile() digestMap {
+	var digest digestMap
 	file, err := os.Open(fileOutput)
 	if err != nil {
 		log.Fatal(err)
-		return false
+		return digest
 	}
 	defer file.Close()
+
 	scanner := bufio.NewScanner(file)
+
 	for scanner.Scan() {
 		text := scanner.Text()
 		partDigest := strings.Split(text, " ")
 		md5 := partDigest[0]
 		theFile := partDigest[1]
-		for _, item := range list {
-			if theFile == item.file {
-				if item.digest != md5 && item.file != theFile {
-					color.Red("The file %s is not the same as the digest check file. (new:%s, old:%s)", item.file, item.digest, md5)
-					status = false
-				} else {
-					fmt.Printf("File %s is in good state\n", item.file)
-				}
-			}
-		}
+		digest[theFile] = md5
 	}
-	return status
+	return digest
 }
 
 func md5sum(file string) []byte {
