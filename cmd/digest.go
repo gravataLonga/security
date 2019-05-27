@@ -19,16 +19,14 @@ package cmd
 
 import (
 	"bufio"
-	"crypto/md5"
 	"fmt"
-	"io"
-	"io/ioutil"
 	"log"
 	"os"
 	"strings"
 	"sync"
 
 	"github.com/fatih/color"
+	m5f "github.com/gravatalonga/md5file"
 	"github.com/mattn/go-zglob"
 	"github.com/spf13/cobra"
 )
@@ -137,6 +135,7 @@ func checkFile() bool {
 
 	if len(digests) > 0 {
 		color.Red("We still have digest items on file. %s", digests)
+		status = false
 	}
 
 	return status
@@ -166,32 +165,16 @@ func getDigestFromFile() digestMap {
 	return digest
 }
 
-func md5sum(file string) []byte {
-	var ret []byte
-	data, err := ioutil.ReadFile(file)
-	if err != nil {
-		log.Fatal(err)
-		return ret
-	}
-	input := strings.NewReader(string(data[:]))
-	hash := md5.New()
-	if _, err := io.Copy(hash, input); err != nil {
-		log.Fatal(err)
-		return ret
-	}
-	return hash.Sum(nil)
-}
-
 func digests(chDone chan bool, matches []string) {
 
 	// Subprocess
-	c1 := worker(matches)
-	// c2 := worker(matches)
+	c1 := worker(matches[:int(len(matches)/2)])
+	c2 := worker(matches[int(len(matches)/2):])
 	// c3 := worker(matches)
 	// c4 := worker(matches)
 
 	// Get Results..
-	for v := range merge(c1) {
+	for v := range merge(c1, c2) {
 		list = append(list, v)
 	}
 
@@ -202,9 +185,12 @@ func worker(files []string) <-chan fileDigest {
 	out := make(chan fileDigest)
 	go func() {
 		for _, file := range files {
-			sum := md5sum(file)
-			ret := fileDigest{file, fmt.Sprintf("%x", sum)}
-			out <- ret
+			md5, err := m5f.Md5file(file)
+			if err != nil {
+				log.Fatal("Unable to transform path file into md5, %s. File %s", err, file)
+				continue
+			}
+			out <- fileDigest{file, md5}
 		}
 		close(out)
 	}()
