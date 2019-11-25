@@ -120,12 +120,12 @@ func checkFile() bool {
 	digests := getDigestFromFile()
 	for _, item := range list {
 		digest, ok := digests[item.file]
-		log.Printf("File %s exist on file ? %t", item.file, ok)
 		if !ok {
 			status = false
 			color.Red("The file %s don't exist on file .chk", item.file)
 			continue
 		}
+		log.Printf("Digest %#v from Item Digest %#v", digest, item.digest)
 		if digest != item.digest {
 			color.Red("The file %s hasn't have same digest. (old: %s, new: %s)", item.file, item.digest, digest)
 			status = false
@@ -185,9 +185,18 @@ func worker(files []string) <-chan fileDigest {
 	out := make(chan fileDigest)
 	go func() {
 		for _, file := range files {
+			fi, err := os.Stat(file)
+			mode := fi.Mode()
+			if mode.IsDir() {
+				continue
+			}
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
 			md5, err := m5f.Md5file(file)
 			if err != nil {
-				log.Fatal("Unable to transform path file into md5, %s. File %s", err, file)
+				log.Fatalf("Unable to transform path file into md5, %s. File %s", err, file)
 				continue
 			}
 			out <- fileDigest{file, md5}
