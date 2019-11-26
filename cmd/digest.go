@@ -73,12 +73,15 @@ var digestCmd = &cobra.Command{
 		if create {
 			createFile()
 			os.Exit(0)
-		} else {
-			if checkFile() {
-				os.Exit(0)
-			}
-			os.Exit(1)
+			return
 		}
+
+		if checkFile() {
+			color.Green("Digest is intact")
+			os.Exit(0)
+		}
+		color.Red("Digest file is not the same as digest of actual file")
+		os.Exit(1)
 	},
 }
 
